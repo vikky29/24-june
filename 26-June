@@ -1,0 +1,89 @@
+public function all_offers(request $request){
+        Helpers::setHeader(200);
+        Helpers::timezone();
+        $getoffers = DB::table('offers')->get(); 
+        if(!empty($getoffers)){
+            $t=0;$json=array();
+            foreach($getoffers as $offer){
+                $json[$t]['id'] = $offer->id;
+                $json[$t]['offer_code'] = $offer->offer_code;
+                $json[$t]['amount'] = $offer->amount;
+                $json[$t]['validity'] = $offer->validity;
+                $json[$t]['type'] = $offer->type;
+                $json[$t]['start_time'] = date('Y-m-d',strtotime($offer->start_time));
+                $json[$t]['end_time'] = date('Y-m-d',strtotime($offer->end_time));
+                $t++;
+            }
+            return response()->json($json);die;
+        }else{
+            $json['status'] = false;
+            $json['msg'] = 'Data not Available';
+            return response()->json($json);die;
+        }
+        
+    } 
+    
+    public function applyOffer(Request $request){
+        Helpers::setHeader(200);
+        $geturl = Helpers::geturl();
+        $user = Helpers::isAuthorize($request);
+        $user_id=$user->id;
+        $offer = $request->get('offercode');
+        $amount = $request->get('amount');
+        if($request->isMethod('post')){
+            $getoffer = DB::table('offers')->where('offer_code',$offer)->first();
+            if(!empty($getoffer)){
+                if($getoffer->type=="amount"){
+                    $getamt = $getoffer->amount;
+                    $applyoffer = $amount-$getamt;
+                    $Json['status'] = true;
+                    $Json['newamount'] = $applyoffer;
+                    return response()->json(array($Json));
+                }else{
+                    $getamt = $getoffer->amount;
+                    $getpercentamt = ($amount*$getamt)/100;
+                    $data = $amount-$getpercentamt;
+                    $Json['status'] = true;
+                    $Json['newamount'] = round($data,2);
+                    return response()->json(array($Json));
+                    
+                }
+            }
+        }else{
+            $Json['status'] = false;
+            $Json['msg'] = 'Unauthorized Request';
+            return response()->json(array($Json));
+        }
+        
+    }
+    public function Addlevel(Request $request){
+    	if($request->isMethod('post')){
+        //  $this->validate($request,[
+        //      'question' => 'required',
+        //      'answer'   =>  'required' 
+        // ]);
+            $input = $request->all();
+            $checkexistlevel = DB::table('level_bonus')->where('level',$input['level'])->first();
+            if(!empty($checkexistlevel)){
+               return redirect()->back()->with('danger','This Level Bonus already exist'); 
+            }
+            unset($input['_token']);
+		    DB::table('level_bonus')->insert($input);
+            return redirect()->back()->with('success','Level Bonus Added Successfully');
+    	}else{
+   	        $dataa = DB::table('level_bonus')->get();
+    	    return view('level.add_level',compact('dataa'));
+    	}
+    }
+    
+    public function deletelevel($id){
+        $leve = DB::table('level_bonus')->where('id',$id)->first();
+        if(!empty($leve)){
+			 DB::table('level_bonus')->where('id',$id)->delete();
+			return redirect()->action('LevelbonusController@Addlevel')->with('success','
+				Level has been deleted successfully');
+        }
+        else{
+            return redirect()->action('LevelbonusController@Addlevel')->with('danger','Invalid Id Provided');
+        }
+    }
