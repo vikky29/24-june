@@ -1,0 +1,32 @@
+public function package_info(request $request){
+        Helpers::setHeader(200);
+        $geturl = Helpers::geturl();
+        $type = $request->get('type');
+        $Pid = $request->get('packageid');
+          $json=array(); 
+            if($type=='car'){
+                $getdata = DB::table('packages')->where('id',$Pid)->first();
+            }else{
+                $getdata = DB::table('saloon_package')->where('id',$Pid)->first();
+            }
+            if(!empty($getdata)){ 
+                $price = explode(',',$getdata->price);
+                $model = explode(',',$getdata->type);
+                $hour = explode(',',$getdata->hrs);
+                $mini = explode(',',$getdata->min);
+                    $i=0;
+                    foreach($price as $rs){
+                        $catggg = DB::table('types_table')->where('types_table.id',$model[$i])->first();
+                            $json[$i]['id'] = $getdata->id;
+                            $json[$i]['package_name'] = $getdata->package_name;
+                            $json[$i]['image'] = $geturl.'public/package_image/'.$getdata->image;
+                            $json[$i]['description'] = strip_tags($getdata->description);
+                            $json[$i]['price'] = $rs;
+                            $json[$i]['catgg'] = $catggg->name;
+                            $json[$i]['hours'] = $hour[$i];
+                            $json[$i]['minitute'] = $mini[$i];
+                            $i++;
+                    }
+                return response()->json($json);die;
+            }
+    }
